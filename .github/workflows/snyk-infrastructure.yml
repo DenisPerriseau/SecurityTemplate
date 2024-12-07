@@ -1,0 +1,40 @@
+name: Snyk Infrastructure as Code
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: '24 9 * * 6'
+
+permissions:
+  contents: read
+
+jobs:
+  snyk:
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Snyk to check configuration files for security issues
+        continue-on-error: true
+        uses: snyk/actions/iac@14818c4695ecc4045f33c9cee9e795a788711ca4
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          file: your-file-to-test.yaml
+          sarif: snyk.sarif # Ensure the SARIF file option is correctly set
+      # Debugging: Check for SARIF file presence
+      - name: Debug SARIF file presence
+        run: ls -al
+      - name: Find SARIF files
+        run: find . -name "*.sarif"
+      # Upload SARIF file
+      - name: Upload result to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: snyk.sarif
