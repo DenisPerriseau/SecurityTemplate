@@ -1,25 +1,17 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-#
-# This workflow file requires a free account on Bearer.com to manage findings, notifications and more.
-# See https://docs.bearer.com/guides/bearer-cloud/
 name: Bearer
 
 on:
   push:
     branches: ["main" ]
   pull_request:
-    # The branches below must be a subset of the branches above
     branches: ["main"]
   schedule:
     - cron: '37 22 * * 0'
 
 permissions:
-  contents: read # for actions/checkout to fetch code
-  security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
-  actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+  contents: read
+  security-events: write
+  actions: read
 
 jobs:
   bearer:
@@ -36,8 +28,15 @@ jobs:
           format: sarif
           output: results.sarif
           exit-code: 0
-      # Upload SARIF file generated in previous step
+      # Debug SARIF file
+      - name: Debug SARIF file
+        run: cat results.sarif
+      # Ensure 'results' is an array
+      - name: Ensure results are in array
+        run: |
+          jq 'if .runs[0].results == null then .runs[0].results = [] else . end' results.sarif > validated.sarif
+      # Upload SARIF file
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: results.sarif
+          sarif_file: validated.sarif
