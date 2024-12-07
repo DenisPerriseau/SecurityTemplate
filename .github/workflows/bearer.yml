@@ -1,0 +1,42 @@
+name: Bearer
+
+on:
+  push:
+    branches: ["main" ]
+  pull_request:
+    branches: ["main"]
+  schedule:
+    - cron: '37 22 * * 0'
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  bearer:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout project source
+      - uses: actions/checkout@v4
+      # Scan code using Bearer CLI
+      - name: Run Report
+        id: report
+        uses: bearer/bearer-action@828eeb928ce2f4a7ca5ed57fb8b59508cb8c79bc
+        with:
+          api-key: ${{ secrets.BEARER_TOKEN }}
+          format: sarif
+          output: results.sarif
+          exit-code: 0
+      # Debug SARIF file
+      - name: Debug SARIF file
+        run: cat results.sarif
+      # Ensure 'results' is an array
+      - name: Ensure results are in array
+        run: |
+          jq 'if .runs[0].results == null then .runs[0].results = [] else . end' results.sarif > validated.sarif
+      # Upload SARIF file
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: validated.sarif
