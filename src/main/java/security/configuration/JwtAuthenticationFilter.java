@@ -15,12 +15,17 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 import security.services.JwtService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-    private final HandlerExceptionResolver handlerExceptionResolver;
 
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+
+    private final HandlerExceptionResolver handlerExceptionResolver;
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
 
@@ -43,13 +48,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String authHeader = request.getHeader("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            log.info("Aucun token JWT trouvé dans l'en-tête de la requête");
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
-            final String jwt = authHeader.substring(7);
+            final String jwt = authHeader.substring(7); // Extraire le JWT
             final String userEmail = jwtService.extractUsername(jwt);
+            log.info("Token JWT trouvé pour l'utilisateur : {}", userEmail);
 
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
@@ -57,6 +64,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
 
                 if (jwtService.isTokenValid(jwt, userDetails)) {
+                    log.info("Token JWT valide pour l'utilisateur : {}", userEmail);
+
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,
                             null,
@@ -65,11 +74,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                } else {
+                    log.warn("Le token JWT est invalide pour l'utilisateur : {}", userEmail);
                 }
             }
 
             filterChain.doFilter(request, response);
         } catch (Exception exception) {
+            log.error("Erreur lors de la vérification du token JWT", exception);
             handlerExceptionResolver.resolveException(request, response, null, exception);
         }
     }

@@ -1,20 +1,34 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/securityDB
-    username: postgres
-    password: postgres
-    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/securityDB # URL de la base de données PostgreSQL
+    username: postgres # Nom d'utilisateur pour se connecter à la base de données
+    password: postgres # Mot de passe pour se connecter à la base de données
+    driver-class-name: org.postgresql.Driver # Pilote JDBC pour PostgreSQL
+    hikari:
+      minimum-idle: 5 # Nombre minimum de connexions que le pool maintient en veille, même si elles ne sont pas utilisées
+      maximum-pool-size: 20 # Taille maximale du pool de connexions
+      idle-timeout: 30000 # Temps en millisecondes avant qu'une connexion inactive ne soit retirée du pool
+      pool-name: HikariPool-1 # Nom personnalisé pour le pool de connexions
+      max-lifetime: 1800000 # Durée de vie maximale d'une connexion dans le pool (30 minutes)
+      connection-timeout: 30000 # Temps maximum en millisecondes avant qu'une tentative de connexion échoue
+      leak-detection-threshold: 2000 # Temps en millisecondes pour détecter les fuites de connexions (utilisées mais non fermées)
+  profiles:
+    active: dev
   jpa:
     hibernate:
-      ddl-auto: create
-    show-sql: true
-    open-in-view: false
+      ddl-auto: update # Permet de créer les tables automatiquement à chaque démarrage (à remplacer par "update" en production)
+    show-sql: true # Affiche les requêtes SQL générées dans la console
+    open-in-view: false # Désactive la gestion de session Hibernate pour les vues (bonne pratique pour les APIs REST)
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-  server:
-    port: 8005
+        dialect: org.hibernate.dialect.PostgreSQLDialect # Dialecte SQL utilisé pour PostgreSQL
+server:
+  port: 8005 # Port sur lequel le serveur Spring Boot sera accessible
+
+
+# Configuration de la sécurité
 security:
   jwt:
-    secret-key: 3cfa76ef14937c1c0ea519f8fc057a80fcd04a7420f8e8bcd0a7567c272e007b
-    expiration-time: 3600000 # 1 heure en millisecondes
+    secret-key: 3cfa76ef14937c1c0ea519f8fc057a80fcd04a7420f8e8bcd0a7567c272e007b # Clé secrète pour signer les tokens JWT
+    expiration-time: 3600000 # Durée de validité d'un token JWT en millisecondes (1 heure)
+    refresh-expiration-time: 604800000 # Durée de validité d'un Refresh Token (7 jours)
