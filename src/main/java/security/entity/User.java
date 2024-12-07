@@ -1,6 +1,5 @@
 package security.entity;
 
-
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -14,7 +13,7 @@ import java.util.List;
 
 @Getter
 @Setter
-@AllArgsConstructor
+
 @Entity
 @Table(name = "users")
 public class User implements UserDetails {
@@ -24,12 +23,17 @@ public class User implements UserDetails {
     @Column(nullable = false,  unique = true)
     private Integer id;
 
-    @Column(nullable = false)
+    // Setter pour fullName
+    @Setter
+    @Column(unique = true)
     private String fullName;
 
+    // Setter pour email
+    @Setter
     @Column(unique = true, length = 100, nullable = false)
     private String email;
 
+    @Getter
     @Column(nullable = false)
     private String password;
 
@@ -41,12 +45,11 @@ public class User implements UserDetails {
     @Column(name = "updated_at")
     private Date updatedAt;
 
-    // getAuthorities()  renvoie la liste des rôles de l'utilisateur
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of();
     }
-    // Retourne l'email de l'utilisateur
+
     @Override
     public String getUsername() {
         return email;
@@ -71,14 +74,6 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
-
-    public User() {
-    }
-
-    public User(String fullName, String email, String password) {
-        this.fullName = fullName;
-        this.email = email;
-        this.password = password;
-    }
-
 }
+
+

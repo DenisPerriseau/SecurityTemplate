@@ -40,7 +40,13 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
-         <!--bibliothèque pour la génération des jetons (normes et interfaces JWT)-->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
+            <version>6.2.0</version>
+        </dependency>
+
+        <!--bibliothèque pour la génération des jetons (normes et interfaces JWT)-->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
