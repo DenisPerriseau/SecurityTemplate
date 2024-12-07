@@ -20,22 +20,25 @@ Ce projet présente une configuration de Spring Security comprenant l'authentifi
 * **Postman ou un autre outil de test d'API** pour tester les points d'API
 
 ## Construire le projet:
-# Maven:
+
+### Maven:
 mvn spring-boot:run
-# Gradle:
+
+###  Gradle:
 gradle build
 
 ## Lancer l'application:
-# Bash
+
+###  Bash
 mvn spring-boot:run
 
 ## Gradle:
-# Bash
+###  Bash
 gradle bootRun
 
 
 
-## Points d'API
+## Endpoints d'API
 * Inscription: POST /auth/signup
 * Connexion: POST /auth/login
 * Rafraîchissement de token: POST /auth/refresh
