@@ -1,6 +1,6 @@
 package security.configuration;
 
-
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -42,17 +43,27 @@ public class SecurityConfiguration {
 
         return httpSecurity
                 .cors(Customizer.withDefaults())
-                .csrf(Customizer.withDefaults())
+                .csrf(csrf -> csrf
+                        .ignoringRequestMatchers(
+                                new AntPathRequestMatcher("/auth/login"),
+                                new AntPathRequestMatcher("/auth/signup"),
+                                new AntPathRequestMatcher("/auth/logout"),
+                                new AntPathRequestMatcher("/auth/roles")
+                        ) // Exclure ces endpoints de la protection CSRF
+                )
                 .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers("/auth/**", "/auth/login").permitAll();  // Permet l'accès à ces endpoints
-                    logger.info("Permet l'accès public à '/auth/**' et '/auth/login'");
+                    auth.requestMatchers("/auth/**").permitAll(); // Permet l'accès à /auth/**
+                    logger.info("Permet l'accès public à '/auth/**'");
+                    auth.anyRequest().authenticated(); // Toutes les autres requêtes nécessitent une authentification
                 })
                 .logout(logout -> logout
                         .logoutUrl("/auth/logout")
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID")
-                        .addLogoutHandler((request, response, authentication) -> logger.info("User logged out, invalidating session and deleting cookies")
-                        )
+                        .logoutSuccessHandler((request, response, authentication) -> {
+                            logger.info("User logged out, invalidating session and deleting cookies");
+                            response.setStatus(HttpServletResponse.SC_OK);
+                        })
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -67,8 +78,9 @@ public class SecurityConfiguration {
 
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of("http://localhost:8005"));
-        configuration.setAllowedMethods(List.of("GET", "POST"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-CSRF-TOKEN"));
+        configuration.setExposedHeaders(List.of("X-CSRF-TOKEN")); // Expose le token CSRF au frontend si nécessaire
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
