@@ -5,9 +5,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -53,6 +51,11 @@ public class JwtService {
             Map<String, Object> extraClaims,
             UserDetails userDetails
     ) {
+        List<String> roles = userDetails.getAuthorities().stream()
+                .map(grantedAuthority -> grantedAuthority.getAuthority().replace("ROLE_", "")) // Supprimez "ROLE_" si nécessaire
+                .toList();
+        extraClaims.put("roles", roles);
+
         return Jwts
                 .builder()
                 .claims(extraClaims)
@@ -66,7 +69,16 @@ public class JwtService {
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+        final String role = extractRole(token);  // Extraire le rôle du token
+
+        // Vérifier si le username correspond et si le token n'est pas expiré
+        boolean isUsernameValid = username.equals(userDetails.getUsername());
+        boolean isRoleValid = role != null && role.equals(userDetails.getAuthorities().stream()
+                .map(grantedAuthority -> grantedAuthority.getAuthority().replace("ROLE_", "")) // Supprimer "ROLE_" si nécessaire
+                .findFirst()
+                .orElse(null));
+
+        return isUsernameValid && isRoleValid && !isTokenExpired(token);
     }
 
     private boolean isTokenExpired(String token) {
@@ -89,5 +101,21 @@ public class JwtService {
     private SecretKey getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    // Extraire les rôles du token
+    public String extractRole(String token) {
+        Claims claims = extractAllClaims(token);
+
+        // Récupérer le rôle (attendu comme une seule chaîne)
+        Object roleObject = claims.get("roles");
+
+        // Si le rôle est une chaîne, le retourner directement
+        if (roleObject instanceof String string) {
+            return string;
+        }
+
+        // Sinon, retourner null ou lancer une exception selon votre logique métier
+        return null;
     }
 }

@@ -1,5 +1,6 @@
 package security.services;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import security.entity.User;
 import security.repository.UserRepository;
@@ -11,6 +12,7 @@ import java.util.List;
 public class UserService {
     private final UserRepository userRepository;
 
+    @Autowired
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
@@ -22,4 +24,6 @@ public class UserService {
 
         return users;
     }
+
+
 }

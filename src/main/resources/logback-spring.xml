@@ -1,92 +1,35 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-
-    <!-- Appender pour la console -->
-    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} - %level - %logger{10} - %msg%n</pattern>
-        </encoder>
-    </appender>
-
-    <!-- Appender pour les logs du controller -->
-    <appender name="CONTROLLER_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/controller.log</file> <!-- Nom du fichier par défaut -->
+    <!-- Appender pour les logs généraux -->
+    <appender name="GENERAL_LOGS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/general.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <!-- Inclure la date dans le nom du fichier avec %d{yyyy-MM-dd} -->
-            <fileNamePattern>logs/controller-%d{yyyy-MM-dd}.log</fileNamePattern> <!-- Rotation journalière -->
-            <maxHistory>7</maxHistory> <!-- Garder les logs des 7 derniers jours -->
-            <cleanHistoryOnStart>true</cleanHistoryOnStart> <!-- Supprimer les anciens fichiers lors du démarrage -->
+            <fileNamePattern>logs/general.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>7</maxHistory>
         </rollingPolicy>
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} - %level - %logger{10} - %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level [%thread] %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 
-    <!-- Appender pour les logs du service -->
-    <appender name="SERVICE_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/service.log</file> <!-- Nom du fichier par défaut -->
+    <!-- Appender pour les logs de sécurité -->
+    <appender name="SECURITY_LOGS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/security.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <!-- Inclure la date dans le nom du fichier avec %d{yyyy-MM-dd} -->
-            <fileNamePattern>logs/service-%d{yyyy-MM-dd}.log</fileNamePattern> <!-- Rotation journalière -->
-            <maxHistory>7</maxHistory> <!-- Garder les logs des 7 derniers jours -->
-            <cleanHistoryOnStart>true</cleanHistoryOnStart> <!-- Supprimer les anciens fichiers lors du démarrage -->
+            <fileNamePattern>logs/security.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>7</maxHistory>
         </rollingPolicy>
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} - %level - %logger{10} - %msg%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} %-5level [%thread] %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 
-    <!-- Appender pour les logs du repository -->
-    <appender name="REPOSITORY_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/repository.log</file> <!-- Nom du fichier par défaut -->
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <!-- Inclure la date dans le nom du fichier avec %d{yyyy-MM-dd} -->
-            <fileNamePattern>logs/repository-%d{yyyy-MM-dd}.log</fileNamePattern> <!-- Rotation journalière -->
-            <maxHistory>7</maxHistory> <!-- Garder les logs des 7 derniers jours -->
-            <cleanHistoryOnStart>true</cleanHistoryOnStart> <!-- Supprimer les anciens fichiers lors du démarrage -->
-        </rollingPolicy>
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} - %level - %logger{10} - %msg%n</pattern>
-        </encoder>
-    </appender>
-
-    <!-- Appender pour les logs de la configuration -->
-    <appender name="CONFIG_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/configuration.log</file> <!-- Nom du fichier par défaut -->
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <!-- Inclure la date dans le nom du fichier avec %d{yyyy-MM-dd} -->
-            <fileNamePattern>logs/configuration-%d{yyyy-MM-dd}.log</fileNamePattern> <!-- Rotation journalière -->
-            <maxHistory>7</maxHistory> <!-- Garder les logs des 7 derniers jours -->
-            <cleanHistoryOnStart>true</cleanHistoryOnStart> <!-- Supprimer les anciens fichiers lors du démarrage -->
-        </rollingPolicy>
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} - %level - %logger{10} - %msg%n</pattern>
-        </encoder>
-    </appender>
-
-    <!-- Logger pour les packages controllers -->
-    <logger name="security.controller" level="DEBUG">
-        <appender-ref ref="CONTROLLER_FILE"/>
+    <!-- Logger pour les packages spécifiques -->
+    <logger name="security" level="INFO" additivity="false">
+        <appender-ref ref="SECURITY_LOGS" />
     </logger>
 
-    <!-- Logger pour les packages services -->
-    <logger name="security.services" level="DEBUG">
-        <appender-ref ref="SERVICE_FILE"/>
-    </logger>
-
-    <!-- Logger pour les packages repositories -->
-    <logger name="security.repository" level="DEBUG">
-        <appender-ref ref="REPOSITORY_FILE"/>
-    </logger>
-
-    <!-- Logger pour les packages configuration -->
-    <logger name="security.configuration" level="DEBUG">
-        <appender-ref ref="CONFIG_FILE"/>
-    </logger>
-
-    <!-- Root logger, qui permet d'envoyer les logs à la console et aux fichiers -->
+    <!-- Logger racine -->
     <root level="INFO">
-        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="GENERAL_LOGS" />
     </root>
-
 </configuration>

@@ -1,17 +1,22 @@
 package security.controller;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
+import security.dto.AssignRolesDto;
 import security.dto.LoginUserDto;
 import security.dto.RegisterUserDto;
-import security.configuration.LoginResponse;
+import security.dto.LoginResponseDto;
 import security.entity.User;
+import security.enums.Role;
+import security.enums.ResponseMessage;
 import security.services.AuthenticationService;
 import security.services.JwtService;
 import security.services.RefreshTokenService;
-
+import security.exceptions.AuthenticationExceptions.InvalidRefreshTokenException;
 
 import java.util.Map;
 
@@ -23,6 +28,7 @@ public class AuthenticationController {
     private final AuthenticationService authenticationService;
     private final UserDetailsService userDetailsService;
     private final RefreshTokenService refreshTokenService;
+    private static final Logger logger = LoggerFactory.getLogger(AuthenticationController.class);
 
     // Constructeur
     public AuthenticationController(JwtService jwtService,
@@ -37,66 +43,59 @@ public class AuthenticationController {
 
     // Endpoint pour l'inscription d'un nouvel utilisateur
     @PostMapping("/signup")
-    public ResponseEntity<User> register(@RequestBody RegisterUserDto registerUserDto) {
+    public ResponseEntity<String> register(@RequestBody RegisterUserDto registerUserDto) {
+        logger.info("Tentative d'inscription pour l'utilisateur : {}", registerUserDto.getEmail());
 
-        try {
-            User registeredUser = authenticationService.signup(registerUserDto);
-            return ResponseEntity.ok(registeredUser);
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body(null);
-        }
+        // Le service gère la logique et lance des exceptions en cas d'erreur
+        User registeredUser = authenticationService.signup(registerUserDto, Role.USER);
+
+        logger.info("Utilisateur inscrit avec succès : {}", registeredUser.getEmail());
+        return ResponseEntity.ok(ResponseMessage.USER_REGISTERED_SUCCESS.getMessage());
     }
+
 
     // Endpoint pour l'authentification de l'utilisateur et la génération des tokens
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> authenticate(@RequestBody LoginUserDto loginUserDto) {
+    public ResponseEntity<LoginResponseDto> authenticate(@RequestBody LoginUserDto loginUserDto) {
+        logger.info("Login attempt for user: {}", loginUserDto.getEmail());
 
-        try {
-            User authenticatedUser = authenticationService.authenticate(loginUserDto);
+        // Lancer une exception en cas d'échec d'authentification
+        User authenticatedUser = authenticationService.authenticate(loginUserDto);
 
-            String jwtToken = jwtService.generateToken(authenticatedUser);
-            String refreshToken = jwtService.generateRefreshToken(authenticatedUser);
+        String jwtToken = jwtService.generateToken(authenticatedUser);
+        String refreshToken = jwtService.generateRefreshToken(authenticatedUser);
 
-            // Sauvegarder le refreshToken en base
-            refreshTokenService.createRefreshToken(authenticatedUser.getEmail());
+        // Sauvegarder le refreshToken en base
+        refreshTokenService.createRefreshToken(authenticatedUser.getEmail());
+        logger.info("User {} successfully authenticated", authenticatedUser.getEmail());
 
-            LoginResponse loginResponse = new LoginResponse();
-            loginResponse.setToken(jwtToken);
-            loginResponse.setExpiresIn(jwtService.getExpirationTime());
-            loginResponse.setRefreshToken(refreshToken);
+        LoginResponseDto loginResponseDto = new LoginResponseDto();
+        loginResponseDto.setToken(jwtToken);
+        loginResponseDto.setExpiresIn(jwtService.getExpirationTime());
+        loginResponseDto.setRefreshToken(refreshToken);
 
-            return ResponseEntity.ok(loginResponse);
-        } catch (Exception e) {
-            return ResponseEntity.status(401).body(null);
-        }
+        return ResponseEntity.ok(loginResponseDto); // Retourne un LoginResponse
     }
 
     // Endpoint pour rafraîchir un Access Token
     @PostMapping("/refresh")
-    public ResponseEntity<LoginResponse> refreshAccessToken(@RequestBody Map<String, String> requestBody) {
+    public ResponseEntity<LoginResponseDto> refreshAccessToken(@RequestBody Map<String, String> requestBody) {
         String refreshToken = requestBody.get("refreshToken");
-
+        logger.info("Attempting to refresh token.");
 
         return refreshTokenService.validateRefreshToken(refreshToken)
                 .map(validToken -> {
-
+                    logger.info("Refresh token validated successfully.");
                     UserDetails userDetails = userDetailsService.loadUserByUsername(validToken.getUserEmail());
+
                     String newAccessToken = jwtService.generateToken(userDetails);
+                    LoginResponseDto loginResponseDto = new LoginResponseDto();
+                    loginResponseDto.setToken(newAccessToken);
+                    loginResponseDto.setExpiresIn(jwtService.getExpirationTime());
 
-                    LoginResponse loginResponse = new LoginResponse();
-                    loginResponse.setToken(newAccessToken);
-                    loginResponse.setExpiresIn(jwtService.getExpirationTime());
-
-                    return ResponseEntity.ok(loginResponse); // Retourne un LoginResponse
+                    return ResponseEntity.ok(loginResponseDto); // Retourne un LoginResponse
                 })
-                .orElseGet(() -> {
-                    LoginResponse errorResponse = new LoginResponse();
-                    errorResponse.setToken(null);
-                    errorResponse.setExpiresIn(0);
-                    errorResponse.setRefreshToken("Refresh token invalide ou expiré");
-
-                    return ResponseEntity.status(401).body(errorResponse); // Retourne une erreur
-                });
+                .orElseThrow(() -> new InvalidRefreshTokenException(ResponseMessage.ERROR_400.getMessage()));
     }
 
     // Controller pour la déconnexion
@@ -104,19 +103,28 @@ public class AuthenticationController {
     public ResponseEntity<String> logout(@RequestBody Map<String, String> requestBody) {
         String refreshToken = requestBody.get("refreshToken");
 
-        // Vérification que le refreshToken est bien présent
         if (refreshToken == null || refreshToken.isEmpty()) {
-            return ResponseEntity.badRequest().body("Refresh token manquant");
+            logger.warn("Logout failed: Refresh token is missing.");
+            throw new InvalidRefreshTokenException(ResponseMessage.ERROR_400.getMessage());
         }
 
-        try {
-            // Supprimer le refreshToken de la base de données
-            refreshTokenService.deleteRefreshToken(refreshToken);
+        // Supprimer tous les refresh tokens de l'utilisateur
+        refreshTokenService.deleteRefreshToken(refreshToken);
+        logger.info("User successfully logged out.");
+        return ResponseEntity.ok(ResponseMessage.USER_LOGOUT_SUCCESS.getMessage());
+    }
 
-            // Retourner une réponse de succès
-            return ResponseEntity.ok("Déconnexion réussie");
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Erreur interne du serveur");
-        }
+    // Endpoint pour attribuer ou modifier les rôles d'un utilisateur
+    @PutMapping("/roles")
+    public ResponseEntity<String> assignRoles(@RequestBody AssignRolesDto assignRolesDto) {
+        logger.info("Tentative d'attribution des rôles pour l'utilisateur : {}", assignRolesDto.getEmail());
+
+        // Assigner ou modifier les rôles de l'utilisateur
+        User updatedUser = authenticationService.assignRolesToUser(assignRolesDto.getEmail(), assignRolesDto.getRole());
+
+        logger.info("Rôles assignés avec succès à l'utilisateur : {}", updatedUser.getEmail());
+        // Retourner un message de succès
+
+        return ResponseEntity.ok(ResponseMessage.ROLE_ASSIGN_SUCCESS.getMessage()); // Message de succès
     }
 }

@@ -21,7 +21,7 @@ public class RefreshTokenService {
         this.refreshTokenRepository = refreshTokenRepository;
     }
 
-    // Création d'un nouveau refresh token
+    // Create a new refresh token for a user
     public RefreshToken createRefreshToken(String userEmail) {
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setToken(UUID.randomUUID().toString());
@@ -31,22 +31,25 @@ public class RefreshTokenService {
         return refreshTokenRepository.save(refreshToken);
     }
 
-    // Validation du refresh token
+    // Validate the given refresh token
     public Optional<RefreshToken> validateRefreshToken(String token) {
         Optional<RefreshToken> refreshToken = refreshTokenRepository.findByToken(token);
+        // If the token doesn't exist or it is expired, return an empty Optional.
         if (refreshToken.isEmpty() || refreshToken.get().getExpiryDate().isBefore(Instant.now())) {
-            return Optional.empty(); // Token non valide ou expiré
+            return Optional.empty();  // Invalid or expired token
         }
         return refreshToken;
     }
 
-    // Suppression d'un refresh token spécifique
+    // Delete a specific refresh token by its token value
     public void deleteRefreshToken(String token) {
         refreshTokenRepository.deleteByToken(token);
     }
 
-    // Suppression des refresh tokens pour un utilisateur
+    // Delete all refresh tokens associated with a specific user (ideal for logging out the user)
     public void deleteTokensByUser(String userEmail) {
         refreshTokenRepository.deleteByUserEmail(userEmail);
     }
+
+
 }
