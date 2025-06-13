@@ -43,7 +43,7 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-webmvc</artifactId>
-            <version>6.2.0</version>
+            <version>6.2.8</version>
         </dependency>
 
         <!--bibliothèque pour la génération des jetons (normes et interfaces JWT)-->
@@ -84,7 +84,7 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>42.7.4</version>
+            <version>42.7.7</version>
         </dependency>
       </dependencies>
 
